@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FAF8F5">
+  <meta name="description" content="A quiet, personal ledger for your study sessions, subjects, and tasks.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <title>Lumen — A Study Ledger</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js for Monthly Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Google Fonts: Newsreader (Editorial Serif) & Plus Jakarta Sans (Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: {
+              50: '#FAF8F5',
+              100: '#F3EFE6', // Warm paper background
+              200: '#E8E2D5',
+              300: '#DCD4C3',
+            },
+            ink: {
+              DEFAULT: '#1C1915', // Ink dark text
+              muted: '#57524A',
+              light: '#8C857B',
+            },
+            jewel: {
+              pine: '#2F7A62',
+              rose: '#C44544',
+              slate: '#3F5F96',
+              amber: '#D97706',
+              purple: '#7C3AED',
+            }
+          },
+          fontFamily: {
+            serif: ['Newsreader', 'Georgia', 'serif'],
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Journal Ledger Styling */
+    body {
+      background-color: #F3EFE6;
+      color: #1C1915;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .paper-card {
+      background: #FAF8F5;
+      border: 1px solid #E8E2D5;
+      box-shadow: 0 4px 20px -2px rgba(28, 25, 21, 0.04);
+    }
+
+    .journal-border {
+      border-color: #E8E2D5;
+    }
+
+    /* Custom Scrollbar for Ledger Lists */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F3EFE6;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #DCD4C3;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #8C857B;
+    }
+
+    /* Subtle Press Effect */
+    .btn-press:active {
+      transform: translateY(1px);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- TOP APP HEADER -->
+  <header class="border-b journal-border bg-[#FAF8F5]/80 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-ink text-paper-100 flex items-center justify-center font-serif text-2xl font-bold italic shadow-sm">
+          L
+        </div>
+        <div>
+          <h1 class="font-serif italic text-2xl font-bold tracking-wide text-ink">Lumen</h1>
+          <p class="text-xs text-ink-muted -mt-1 font-serif tracking-widest uppercase">A Study Ledger</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center space-x-1 sm:space-x-2 bg-paper-200/60 p-1.5 rounded-xl text-sm font-medium">
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-3.5 py-2 rounded-lg transition-all flex items-center space-x-2 bg-paper-50 text-ink shadow-sm">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Ledger</span>
+        </button>
+        <button onclick="switchTab('timer')" id="tab-timer" class="px-3.5 py-2 rounded-lg transition-all flex items-center space-x-2 text-ink-muted hover:text-ink">
+          <i data-lucide="timer" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Focus Timer</span>
+        </button>
+        <button onclick="switchTab('subjects')" id="tab-subjects" class="px-3.5 py-2 rounded-lg transition-all flex items-center space-x-2 text-ink-muted hover:text-ink">
+          <i data-lucide="book-open" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Subjects</span>
+        </button>
+        <button onclick="switchTab('tasks')" id="tab-tasks" class="px-3.5 py-2 rounded-lg transition-all flex items-center space-x-2 text-ink-muted hover:text-ink">
+          <i data-lucide="check-square" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Tasks</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- SUMMARY METRICS BAR -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="paper-card p-5 rounded-2xl flex flex-col justify-between">
+        <div class="flex items-center justify-between text-ink-muted mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider">This Month</span>
+          <i data-lucide="calendar" class="w-4 h-4"></i>
+        </div>
+        <div class="text-2xl sm:text-3xl font-serif italic font-bold text-ink" id="stat-month-hours">0.0 hrs</div>
+        <div class="text-xs text-ink-light mt-1" id="stat-month-label">Total time recorded</div>
+      </div>
+
+      <div class="paper-card p-5 rounded-2xl flex flex-col justify-between">
+        <div class="flex items-center justify-between text-ink-muted mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider">Daily Average</span>
+          <i data-lucide="trending-up" class="w-4 h-4"></i>
+        </div>
+        <div class="text-2xl sm:text-3xl font-serif italic font-bold text-ink" id="stat-daily-avg">0.0 hrs</div>
+        <div class="text-xs text-ink-light mt-1">Active study days</div>
+      </div>
+
+      <div class="paper-card p-5 rounded-2xl flex flex-col justify-between">
+        <div class="flex items-center justify-between text-ink-muted mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider">Top Subject</span>
+          <i data-lucide="award" class="w-4 h-4"></i>
+        </div>
+        <div class="text-xl sm:text-2xl font-serif italic font-bold text-ink truncate" id="stat-top-subject">—</div>
+        <div class="text-xs text-ink-light mt-1" id="stat-top-subject-hours">No hours logged</div>
+      </div>
+
+      <div class="paper-card p-5 rounded-2xl flex flex-col justify-between">
+        <div class="flex items-center justify-between text-ink-muted mb-2">
+          <span class="text-xs font-semibold uppercase tracking-wider">Tasks Done</span>
+          <i data-lucide="check-circle" class="w-4 h-4"></i>
+        </div>
+        <div class="text-2xl sm:text-3xl font-serif italic font-bold text-ink" id="stat-tasks-done">0/0</div>
+        <div class="text-xs text-ink-light mt-1" id="stat-tasks-percent">0% completion rate</div>
+      </div>
+    </div>
+
+    <!-- VIEW 1: DASHBOARD / LEDGER -->
+    <div id="view-dashboard" class="space-y-8">
+      <!-- Top Row: Chart + Quick Manual Log -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Monthly Visual Chart -->
+        <div class="lg:col-span-2 paper-card p-6 rounded-2xl flex flex-col">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b journal-border mb-6 gap-3">
+            <div>
+              <h2 class="font-serif text-2xl font-bold italic text-ink">Monthly Distribution</h2>
+              <p class="text-xs text-ink-muted">Study hours per subject over time</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button onclick="changeMonth(-1)" class="p-1.5 hover:bg-paper-200 rounded-lg text-ink-muted hover:text-ink transition">
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+              </button>
+              <span id="current-month-display" class="font-serif text-sm font-semibold italic text-ink px-2">October 2026</span>
+              <button onclick="changeMonth(1)" class="p-1.5 hover:bg-paper-200 rounded-lg text-ink-muted hover:text-ink transition">
+                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+              </button>
+            </div>
+          </div>
+          <div class="relative flex-grow min-h-[280px]">
+            <canvas id="monthlyChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Quick Log Form -->
+        <div class="paper-card p-6 rounded-2xl flex flex-col">
+          <div class="pb-4 border-b journal-border mb-6">
+            <h2 class="font-serif text-2xl font-bold italic text-ink">Log Hours</h2>
+            <p class="text-xs text-ink-muted">Add a completed session directly</p>
+          </div>
+
+          <form id="quick-log-form" onsubmit="handleManualLog(event)" class="space-y-4 flex-grow flex flex-col justify-between">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Subject</label>
+                <select id="log-subject-select" required class="w-full bg-paper-100 border journal-border rounded-xl px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink">
+                  <!-- Dynamic options -->
+                </select>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Hours</label>
+                  <input type="number" id="log-hours" min="0" max="24" value="1" required class="w-full bg-paper-100 border journal-border rounded-xl px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Minutes</label>
+                  <input type="number" id="log-minutes" min="0" max="59" step="5" value="0" required class="w-full bg-paper-100 border journal-border rounded-xl px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Date</label>
+                <input type="date" id="log-date" required class="w-full bg-paper-100 border journal-border rounded-xl px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Note / Topic (Optional)</label>
+                <input type="text" id="log-note" placeholder="e.g. Chapter 4 Quiz prep" class="w-full bg-paper-100 border journal-border rounded-xl px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink">
+              </div>
+            </div>
+
+            <button type="submit" class="w-full mt-4 bg-ink text-paper-100 hover:bg-ink-muted font-medium py-3 rounded-xl transition btn-press flex items-center justify-center space-x-2">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>Save Entry</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Recent Journal Logs Table -->
+      <div class="paper-card p-6 rounded-2xl">
+        <div class="flex items-center justify-between pb-4 border-b journal-border mb-4">
+          <div>
+            <h2 class="font-serif text-2xl font-bold italic text-ink">Recent Study Logs</h2>
+            <p class="text-xs text-ink-muted">Historical ledger of study sessions</p>
+          </div>
+          <span class="text-xs text-ink-light" id="total-logs-count">0 entries</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="text-xs font-semibold uppercase tracking-wider text-ink-muted border-b journal-border">
+                <th class="py-3 px-4">Date</th>
+                <th class="py-3 px-4">Subject</th>
+                <th class="py-3 px-4">Duration</th>
+                <th class="py-3 px-4">Notes</th>
+                <th class="py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="logs-table-body" class="divide-y journal-border text-sm">
+              <!-- Dynamic Rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: FOCUS TIMER -->
+    <div id="view-timer" class="hidden space-y-8">
+      <div class="max-w-2xl mx-auto paper-card p-8 rounded-3xl text-center space-y-6">
+        
+        <!-- Mode Switcher -->
+        <div class="inline-flex bg-paper-200/80 p-1.5 rounded-xl text-xs font-semibold uppercase tracking-wider">
+          <button onclick="setTimerMode('stopwatch')" id="mode-stopwatch" class="px-5 py-2 rounded-lg transition bg-paper-50 text-ink shadow-sm">Stopwatch</button>
+          <button onclick="setTimerMode('pomodoro')" id="mode-pomodoro" class="px-5 py-2 rounded-lg transition text-ink-muted">Pomodoro (25m)</button>
+        </div>
+
+        <!-- Timer Subject Selector -->
+        <div class="max-w-xs mx-auto">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">Focusing On</label>
+          <select id="timer-subject-select" class="w-full bg-paper-100 border journal-border rounded-xl px-4 py-2.5 text-center font-medium text-ink focus:outline-none focus:ring-2 focus:ring-ink">
+            <!-- Dynamic Subject Options -->
+          </select>
+        </div>
+
+        <!-- Big Display -->
+        <div class="py-8">
+          <div id="timer-display" class="font-serif text-7xl sm:text-8xl italic font-bold text-ink tracking-tight">
+            00:00:00
+          </div>
+          <p id="timer-status-text" class="text-xs text-ink-muted mt-3 font-mono tracking-widest uppercase">Ready to begin</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-center space-x-4">
+          <button id="btn-timer-start" onclick="toggleTimer()" class="px-8 py-3.5 bg-ink text-paper-100 font-medium rounded-2xl hover:bg-ink-muted transition btn-press flex items-center space-x-2 text-base">
+            <i data-lucide="play" class="w-5 h-5"></i>
+            <span>Start Session</span>
+          </button>
+
+          <button onclick="resetTimer()" class="px-6 py-3.5 bg-paper-200 text-ink font-medium rounded-2xl hover:bg-paper-300 transition btn-press flex items-center space-x-2 text-base">
+            <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+            <span>Reset</span>
+          </button>
+        </div>
+
+        <!-- Optional Task Note for Timer Session -->
+        <div class="pt-4 max-w-md mx-auto">
+          <input type="text" id="timer-note" placeholder="What are you focusing on during this session?" class="w-full bg-paper-100 border journal-border rounded-xl px-4 py-2.5 text-sm text-center text-ink focus:outline-none focus:ring-2 focus:ring-ink">
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: SUBJECTS MANAGEMENT -->
+    <div id="view-subjects" class="hidden space-y-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        <!-- Add Subject Form -->
+        <div class="paper-card p-6 rounded-2xl h-fit">
+          <div class="pb-4 border-b journal-border mb-6">
+            <h2 class="font-serif text-2xl font-bold italic text-ink" id="subject-form-title">Add Subject</h2>
+            <p class="text-xs text-ink-muted">Configure study topics & jewel color tag</p>
+          </div>
+
+          <form id="subject-form" onsubmit="handleSaveSubject(event)" class="space-y-5">
+            <input type="hidden" id="edit-subject-id" value="">
+            
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-1.5">Subject Name</label>
+              <input type="text" id="subject-name" placeholder="e.g. Organic Chemistry" required class="w-full bg-paper-100 border journal-border rounded-xl px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-ink-muted mb-2">Jewel Palette Color</label>
+              <div class="grid grid-cols-5 gap-2.5 mb-3" id="preset-colors-grid">
+                <!-- Dynamic color options generated by JS -->
+              </div>
+              <div class="flex items-center space-x-2 mt-2">
+                <span class="text-xs text-ink-muted">Custom Hex:</span>
+                <input type="color" id="subject-color-picker" class="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0">
+              </div>
+            </div>
+
+            <div class="flex space-x-2 pt-2">
+              <button type="submit" class="flex-grow bg-ink text-paper-100 hover:bg-ink-muted font-medium py-3 rounded-xl transition btn-press flex items-center justify-center space-x-2 text-sm">
+                <i data-lucide="check" class="w-4 h-4"></i>
+                <span id="subject-btn-label">Create Subject</span>
+              </button>
+              <button type="button" id="cancel-edit-subject" onclick="resetSubjectForm()" class="hidden px-4 bg-paper-200 text-ink hover:bg-paper-300 rounded-xl text-sm transition">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Subject List -->
+        <div class="md:col-span-2 paper-card p-6 rounded-2xl">
+          <div class="pb-4 border-b journal-border mb-6 flex items-center justify-between">
+            <div>
+              <h2 class="font-serif text-2xl font-bold italic text-ink">Active Subjects</h2>
+              <p class="text-xs text-ink-muted">List of all created subjects & total time logged</p>
+            </div>
+            <span class="text-xs text-ink-light" id="subjects-count">0 subjects</span>
+          </div>
+
+          <div id="subjects-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Dynamic Subject Cards -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 4: TO-DO LIST & SESSION TASKS -->
+    <div id="view-tasks" class="hidden space-y-8">
+      <div class="max-w-4xl mx-auto space-y-6">
+        
+        <!-- Add Task Input -->
+        <div class="paper-card p-4 sm:p-6 rounded-2xl">
+          <form onsubmit="handleAddTask(event)" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <input type="text" id="task-input" placeholder="Add a new study goal or task..." required class="flex-grow bg-paper-100 border journal-border rounded-xl px-4 py-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink">
+            
+            <select id="task-subject-select" class="bg-paper-100 border journal-border rounded-xl px-3.5 py-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-ink">
+              <!-- Dynamic Options -->
+            </select>
+
+            <button type="submit" class="bg-ink text-paper-100 hover:bg-ink-muted font-medium px-6 py-3 rounded-xl transition btn-press flex items-center justify-center space-x-2 text-sm">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>Add Goal</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Task Filtering & List -->
+        <div class="paper-card p-6 rounded-2xl">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b journal-border mb-4 gap-2">
+            <h2 class="font-serif text-2xl font-bold italic text-ink">Study Tasks</h2>
+            
+            <!-- Task Filter -->
+            <div class="flex items-center space-x-2 text-xs font-medium">
+              <button onclick="setTaskFilter('all')" id="filter-all" class="px-3 py-1.5 rounded-lg bg-paper-200 text-ink">All</button>
+              <button onclick="setTaskFilter('pending')" id="filter-pending" class="px-3 py-1.5 rounded-lg text-ink-muted hover:text-ink">Pending</button>
+              <button onclick="setTaskFilter('completed')" id="filter-completed" class="px-3 py-1.5 rounded-lg text-ink-muted hover:text-ink">Completed</button>
+            </div>
+          </div>
+
+          <div id="tasks-list" class="space-y-3">
+            <!-- Dynamic Task Item -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t journal-border py-6 mt-12 bg-paper-50 text-center text-xs text-ink-light">
+    <div class="max-w-7xl mx-auto px-4">
+      <p class="font-serif italic text-ink-muted">Lumen — Quiet Editorial Study Ledger</p>
+      <p class="mt-1">All study session records are stored locally in your browser.</p>
+    </div>
+  </footer>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    // PRESET JEWEL PALETTE
+    const JEWEL_COLORS = [
+      { name: 'Pine', hex: '#2F7A62' },
+      { name: 'Rose', hex: '#C44544' },
+      { name: 'Slate', hex: '#3F5F96' },
+      { name: 'Amber', hex: '#D97706' },
+      { name: 'Amethyst', hex: '#7C3AED' }
+    ];
+
+    // STATE MANAGEMENT WITH LOCALSTORAGE
+    let state = {
+      subjects: JSON.parse(localStorage.getItem('lumen_subjects')) || [],
+      logs: JSON.parse(localStorage.getItem('lumen_logs')) || [],
+      tasks: JSON.parse(localStorage.getItem('lumen_tasks')) || [],
+      currentMonthView: new Date()
+    };
+
+    // TIMER STATE
+    let timerState = {
+      mode: 'stopwatch', // 'stopwatch' | 'pomodoro'
+      running: false,
+      seconds: 0,
+      interval: null,
+      targetSeconds: 25 * 60
+    };
+
+    let selectedSubjectColor = JEWEL_COLORS[0].hex;
+    let monthlyChartInstance = null;
+    let activeTaskFilter = 'all';
+
+    // INITIALIZATION
+    window.onload = function() {
+      lucide.createIcons();
+      document.getElementById('log-date').value = getFormattedDate(0);
+      
+      renderColorPresets();
+      renderSubjectSelects();
+      renderSubjectsList();
+      renderLogsTable();
+      renderTasksList();
+      updateDashboardStats();
+      initMonthlyChart();
+
+      // Subject color picker change sync
+      const picker = document.getElementById('subject-color-picker');
+      picker.value = selectedSubjectColor;
+      picker.addEventListener('input', (e) => {
+        selectedSubjectColor = e.target.value;
+        highlightColorPreset(null);
+      });
+    };
+
+    function saveState() {
+      localStorage.setItem('lumen_subjects', JSON.stringify(state.subjects));
+      localStorage.setItem('lumen_logs', JSON.stringify(state.logs));
+      localStorage.setItem('lumen_tasks', JSON.stringify(state.tasks));
+      
+      updateDashboardStats();
+      renderSubjectSelects();
+      renderSubjectsList();
+      renderLogsTable();
+      renderTasksList();
+      updateMonthlyChart();
+    }
+
+    function getFormattedDate(offsetDays = 0) {
+      const d = new Date();
+      d.setDate(d.getDate() + offsetDays);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // TAB SWITCHING
+    function switchTab(tabName) {
+      const tabs = ['dashboard', 'timer', 'subjects', 'tasks'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-${t}`);
+        const view = document.getElementById(`view-${t}`);
+        if (t === tabName) {
+          btn.className = 'px-3.5 py-2 rounded-lg transition-all flex items-center space-x-2 bg-paper-50 text-ink shadow-sm';
+          view.classList.remove('hidden');
+        } else {
+          btn.className = 'px-3.5 py-2 rounded-lg transition-all flex items-center space-x-2 text-ink-muted hover:text-ink';
+          view.classList.add('hidden');
+        }
+      });
+      lucide.createIcons();
+    }
+
+    // SUBJECT COLOR PRESET RENDER
+    function renderColorPresets() {
+      const grid = document.getElementById('preset-colors-grid');
+      grid.innerHTML = JEWEL_COLORS.map(c => `
+        <button type="button" onclick="selectPresetColor('${c.hex}')" 
+                class="w-full h-9 rounded-lg border-2 border-transparent transition-all transform hover:scale-105 color-btn"
+                style="background-color: ${c.hex};" id="color-btn-${c.hex.replace('#','')}" title="${c.name}">
+        </button>
+      `).join('');
+      highlightColorPreset(selectedSubjectColor);
+    }
+
+    function selectPresetColor(hex) {
+      selectedSubjectColor = hex;
+      document.getElementById('subject-color-picker').value = hex;
+      highlightColorPreset(hex);
+    }
+
+    function highlightColorPreset(hex) {
+      document.querySelectorAll('.color-btn').forEach(btn => btn.style.borderColor = 'transparent');
+      if (hex) {
+        const target = document.getElementById(`color-btn-${hex.replace('#','')}`);
+        if (target) target.style.borderColor = '#1C1915';
+      }
+    }
+
+    // SELECT POPULATION
+    function renderSubjectSelects() {
+      const logSelect = document.getElementById('log-subject-select');
+      const timerSelect = document.getElementById('timer-subject-select');
+      const taskSelect = document.getElementById('task-subject-select');
+
+      const options = state.subjects.length > 0
+        ? state.subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('')
+        : `<option value="">No subjects - Add one first</option>`;
+
+      logSelect.innerHTML = options;
+      timerSelect.innerHTML = options;
+      taskSelect.innerHTML = `<option value="">General Goal (No Subject)</option>` + options;
+    }
+
+    // SUBJECT MANAGEMENT LOGIC
+    function handleSaveSubject(e) {
+      e.preventDefault();
+      const nameInput = document.getElementById('subject-name');
+      const editId = document.getElementById('edit-subject-id').value;
+
+      if (!nameInput.value.trim()) return;
+
+      if (editId) {
+        // Edit existing
+        const sub = state.subjects.find(s => s.id === editId);
+        if (sub) {
+          sub.name = nameInput.value.trim();
+          sub.color = selectedSubjectColor;
+        }
+      } else {
+        // Add new
+        const newSub = {
+          id: Date.now().toString(),
+          name: nameInput.value.trim(),
+          color: selectedSubjectColor
+        };
+        state.subjects.push(newSub);
+      }
+
+      resetSubjectForm();
+      saveState();
+    }
+
+    function editSubject(id) {
+      const sub = state.subjects.find(s => s.id === id);
+      if (!sub) return;
+
+      document.getElementById('subject-form-title').innerText = 'Edit Subject';
+      document.getElementById('subject-name').value = sub.name;
+      document.getElementById('edit-subject-id').value = sub.id;
+      document.getElementById('subject-btn-label').innerText = 'Update Subject';
+      document.getElementById('cancel-edit-subject').classList.remove('hidden');
+
+      selectPresetColor(sub.color);
+    }
+
+    function resetSubjectForm() {
+      document.getElementById('subject-form-title').innerText = 'Add Subject';
+      document.getElementById('subject-name').value = '';
+      document.getElementById('edit-subject-id').value = '';
+      document.getElementById('subject-btn-label').innerText = 'Create Subject';
+      document.getElementById('cancel-edit-subject').classList.add('hidden');
+      selectPresetColor(JEWEL_COLORS[0].hex);
+    }
+
+    function deleteSubject(id) {
+      if (confirm("Are you sure? This subject and its associated logs/tasks will remain historical.")) {
+        state.subjects = state.subjects.filter(s => s.id !== id);
+        saveState();
+      }
+    }
+
+    function renderSubjectsList() {
+      const container = document.getElementById('subjects-list');
+      document.getElementById('subjects-count').innerText = `${state.subjects.length} subjects`;
+
+      if (state.subjects.length === 0) {
+        container.innerHTML = `<p class="col-span-2 text-sm text-ink-light italic py-4">No study subjects created yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = state.subjects.map(s => {
+        // Compute total hours logged
+        const totalMinutes = state.logs
+          .filter(l => l.subjectId === s.id)
+          .reduce((acc, curr) => acc + curr.minutes, 0);
+        const hours = (totalMinutes / 60).toFixed(1);
+
+        return `
+          <div class="p-4 rounded-xl border journal-border bg-paper-100 flex items-center justify-between">
+            <div class="flex items-center space-x-3 truncate">
+              <div class="w-3.5 h-3.5 rounded-full flex-shrink-0" style="background-color: ${s.color}"></div>
+              <div class="truncate">
+                <h3 class="font-medium text-ink text-sm truncate">${escapeHtml(s.name)}</h3>
+                <p class="text-xs text-ink-muted">${hours} hours logged</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-1 flex-shrink-0">
+              <button onclick="editSubject('${s.id}')" class="p-1.5 text-ink-light hover:text-ink transition">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+              <button onclick="deleteSubject('${s.id}')" class="p-1.5 text-ink-light hover:text-jewel-rose transition">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // MANUAL LOGGING & LOG TABLE
+    function handleManualLog(e) {
+      e.preventDefault();
+      const subjectId = document.getElementById('log-subject-select').value;
+      const hours = parseInt(document.getElementById('log-hours').value) || 0;
+      const minutes = parseInt(document.getElementById('log-minutes').value) || 0;
+      const date = document.getElementById('log-date').value;
+      const note = document.getElementById('log-note').value.trim();
+
+      if (!subjectId) {
+        alert("Please add a subject first.");
+        return;
+      }
+
+      const totalMins = (hours * 60) + minutes;
+      if (totalMins <= 0) return;
+
+      state.logs.unshift({
+        id: Date.now().toString(),
+        subjectId,
+        minutes: totalMins,
+        date,
+        note
+      });
+
+      document.getElementById('log-note').value = '';
+      saveState();
+    }
+
+    function deleteLog(id) {
+      state.logs = state.logs.filter(l => l.id !== id);
+      saveState();
+    }
+
+    function renderLogsTable() {
+      const tbody = document.getElementById('logs-table-body');
+      document.getElementById('total-logs-count').innerText = `${state.logs.length} entries`;
+
+      if (state.logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-ink-light italic">No study logs recorded yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = state.logs.map(log => {
+        const sub = state.subjects.find(s => s.id === log.subjectId) || { name: 'Deleted Subject', color: '#8C857B' };
+        const hrs = Math.floor(log.minutes / 60);
+        const mins = log.minutes % 60;
+        const durationStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+
+        return `
+          <tr class="hover:bg-paper-200/40 transition">
+            <td class="py-3 px-4 font-mono text-xs text-ink-muted">${log.date}</td>
+            <td class="py-3 px-4 font-medium">
+              <span class="inline-flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${sub.color}"></span>
+                <span>${escapeHtml(sub.name)}</span>
+              </span>
+            </td>
+            <td class="py-3 px-4 font-serif italic">${durationStr}</td>
+            <td class="py-3 px-4 text-xs text-ink-muted max-w-xs truncate">${log.note ? escapeHtml(log.note) : '—'}</td>
+            <td class="py-3 px-4 text-right">
+              <button onclick="deleteLog('${log.id}')" class="text-ink-light hover:text-jewel-rose transition p-1">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // FOCUS TIMER LOGIC
+    function setTimerMode(mode) {
+      if (timerState.running) resetTimer();
+      timerState.mode = mode;
+      
+      const btnStopwatch = document.getElementById('mode-stopwatch');
+      const btnPomodoro = document.getElementById('mode-pomodoro');
+
+      if (mode === 'stopwatch') {
+        btnStopwatch.className = 'px-5 py-2 rounded-lg transition bg-paper-50 text-ink shadow-sm';
+        btnPomodoro.className = 'px-5 py-2 rounded-lg transition text-ink-muted';
+        timerState.seconds = 0;
+      } else {
+        btnPomodoro.className = 'px-5 py-2 rounded-lg transition bg-paper-50 text-ink shadow-sm';
+        btnStopwatch.className = 'px-5 py-2 rounded-lg transition text-ink-muted';
+        timerState.seconds = 25 * 60;
+      }
+      updateTimerDisplay();
+    }
+
+    function toggleTimer() {
+      if (timerState.running) {
+        // Pause Timer
+        clearInterval(timerState.interval);
+        timerState.running = false;
+        document.getElementById('btn-timer-start').innerHTML = `<i data-lucide="play" class="w-5 h-5"></i><span>Resume</span>`;
+        document.getElementById('timer-status-text').innerText = 'Paused';
+      } else {
+        // Start Timer
+        const subSelect = document.getElementById('timer-subject-select');
+        if (!subSelect.value) {
+          alert('Please create and select a subject to track focus session.');
+          return;
+        }
+
+        timerState.running = true;
+        document.getElementById('btn-timer-start').innerHTML = `<i data-lucide="pause" class="w-5 h-5"></i><span>Pause</span>`;
+        document.getElementById('timer-status-text').innerText = 'Focus session in progress...';
+
+        timerState.interval = setInterval(() => {
+          if (timerState.mode === 'stopwatch') {
+            timerState.seconds++;
+          } else {
+            timerState.seconds--;
+            if (timerState.seconds <= 0) {
+              clearInterval(timerState.interval);
+              timerState.running = false;
+              completeTimerSession();
+            }
+          }
+          updateTimerDisplay();
+        }, 1000);
+      }
+      lucide.createIcons();
+    }
+
+    function resetTimer() {
+      if (timerState.running && timerState.seconds > 10) {
+        if (confirm("Save current timer session before resetting?")) {
+          clearInterval(timerState.interval);
+          timerState.running = false;
+          completeTimerSession();
+          return;
+        }
+      }
+      clearInterval(timerState.interval);
+      timerState.running = false;
+      timerState.seconds = timerState.mode === 'pomodoro' ? 25 * 60 : 0;
+      document.getElementById('btn-timer-start').innerHTML = `<i data-lucide="play" class="w-5 h-5"></i><span>Start Session</span>`;
+      document.getElementById('timer-status-text').innerText = 'Ready to begin';
+      updateTimerDisplay();
+      lucide.createIcons();
+    }
+
+    function completeTimerSession() {
+      clearInterval(timerState.interval);
+      timerState.running = false;
+      const subjectId = document.getElementById('timer-subject-select').value;
+      const note = document.getElementById('timer-note').value.trim();
+
+      let elapsedSeconds = timerState.mode === 'pomodoro' ? (25 * 60 - timerState.seconds) : timerState.seconds;
+      let minutes = Math.round(elapsedSeconds / 60);
+
+      if (minutes >= 1 && subjectId) {
+        state.logs.unshift({
+          id: Date.now().toString(),
+          subjectId,
+          minutes,
+          date: getFormattedDate(0),
+          note: note ? `[Focus Session] ${note}` : '[Focus Session]'
+        });
+        saveState();
+        alert(`Great work! Logged ${minutes} minutes of study time.`);
+      }
+
+      document.getElementById('timer-note').value = '';
+      resetTimer();
+    }
+
+    function updateTimerDisplay() {
+      const display = document.getElementById('timer-display');
+      const hrs = Math.floor(timerState.seconds / 3600);
+      const mins = Math.floor((timerState.seconds % 3600) / 60);
+      const secs = timerState.seconds % 60;
+
+      const format = (num) => String(num).padStart(2, '0');
+      display.innerText = `${format(hrs)}:${format(mins)}:${format(secs)}`;
+    }
+
+    // TASKS MANAGEMENT
+    function handleAddTask(e) {
+      e.preventDefault();
+      const input = document.getElementById('task-input');
+      const subjectId = document.getElementById('task-subject-select').value;
+
+      if (!input.value.trim()) return;
+
+      state.tasks.unshift({
+        id: Date.now().toString(),
+        text: input.value.trim(),
+        subjectId: subjectId || null,
+        completed: false
+      });
+
+      input.value = '';
+      saveState();
+    }
+
+    function toggleTask(id) {
+      const task = state.tasks.find(t => t.id === id);
+      if (task) {
+        task.completed = !task.completed;
+        saveState();
+      }
+    }
+
+    function deleteTask(id) {
+      state.tasks = state.tasks.filter(t => t.id !== id);
+      saveState();
+    }
+
+    function setTaskFilter(filter) {
+      activeTaskFilter = filter;
+      ['all', 'pending', 'completed'].forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (f === filter) {
+          btn.className = 'px-3 py-1.5 rounded-lg bg-paper-200 text-ink';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-lg text-ink-muted hover:text-ink';
+        }
+      });
+      renderTasksList();
+    }
+
+    function renderTasksList() {
+      const container = document.getElementById('tasks-list');
+      
+      let filtered = state.tasks;
+      if (activeTaskFilter === 'pending') filtered = state.tasks.filter(t => !t.completed);
+      if (activeTaskFilter === 'completed') filtered = state.tasks.filter(t => t.completed);
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-sm text-ink-light italic py-4 text-center">No tasks found in this view.</p>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(t => {
+        const sub = state.subjects.find(s => s.id === t.subjectId);
+
+        return `
+          <div class="p-4 rounded-xl border journal-border bg-paper-100 flex items-center justify-between space-x-3 transition">
+            <div class="flex items-center space-x-3 flex-grow truncate">
+              <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask('${t.id}')" 
+                     class="w-5 h-5 rounded text-ink focus:ring-ink border-journal-border cursor-pointer">
+              
+              <div class="truncate">
+                <p class="text-sm text-ink ${t.completed ? 'line-through text-ink-light' : ''}">${escapeHtml(t.text)}</p>
+                ${sub ? `
+                  <span class="inline-flex items-center space-x-1 text-xs text-ink-muted mt-0.5">
+                    <span class="w-2 h-2 rounded-full" style="background-color: ${sub.color}"></span>
+                    <span>${escapeHtml(sub.name)}</span>
+                  </span>
+                ` : ''}
+              </div>
+            </div>
+
+            <button onclick="deleteTask('${t.id}')" class="text-ink-light hover:text-jewel-rose transition p-1">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // DASHBOARD STATS CALCULATIONS
+    function updateDashboardStats() {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      // Monthly Logs
+      const monthlyLogs = state.logs.filter(l => {
+        const d = new Date(`${l.date}T12:00:00`);
+        return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+      });
+
+      const totalMonthMins = monthlyLogs.reduce((acc, curr) => acc + curr.minutes, 0);
+      const totalMonthHours = (totalMonthMins / 60).toFixed(1);
+      document.getElementById('stat-month-hours').innerText = `${totalMonthHours} hrs`;
+
+      // Unique active days this month
+      const activeDays = new Set(monthlyLogs.map(l => l.date)).size || 1;
+      const dailyAvgHours = (totalMonthMins / 60 / activeDays).toFixed(1);
+      document.getElementById('stat-daily-avg').innerText = `${dailyAvgHours} hrs`;
+
+      // Top Subject
+      const subjectTotals = {};
+      monthlyLogs.forEach(l => {
+        subjectTotals[l.subjectId] = (subjectTotals[l.subjectId] || 0) + l.minutes;
+      });
+
+      let topSubId = null;
+      let maxMins = 0;
+      Object.keys(subjectTotals).forEach(id => {
+        if (subjectTotals[id] > maxMins) {
+          maxMins = subjectTotals[id];
+          topSubId = id;
+        }
+      });
+
+      if (topSubId) {
+        const topSub = state.subjects.find(s => s.id === topSubId);
+        document.getElementById('stat-top-subject').innerText = topSub ? topSub.name : '—';
+        document.getElementById('stat-top-subject-hours').innerText = `${(maxMins / 60).toFixed(1)} hrs logged`;
+      } else {
+        document.getElementById('stat-top-subject').innerText = '—';
+        document.getElementById('stat-top-subject-hours').innerText = 'No hours logged';
+      }
+
+      // Tasks stats
+      const totalTasks = state.tasks.length;
+      const doneTasks = state.tasks.filter(t => t.completed).length;
+      const percent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+
+      document.getElementById('stat-tasks-done').innerText = `${doneTasks}/${totalTasks}`;
+      document.getElementById('stat-tasks-percent').innerText = `${percent}% completion rate`;
+    }
+
+    // MONTHLY CHART (CHART.JS)
+    function changeMonth(delta) {
+      state.currentMonthView.setMonth(state.currentMonthView.getMonth() + delta);
+      updateMonthlyChart();
+    }
+
+    function initMonthlyChart() {
+      const ctx = document.getElementById('monthlyChart').getContext('2d');
+      monthlyChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { color: '#8C857B', font: { family: 'Plus Jakarta Sans', size: 10 } }
+            },
+            y: {
+              stacked: true,
+              grid: { color: '#E8E2D5' },
+              ticks: { color: '#8C857B', font: { family: 'Plus Jakarta Sans', size: 10 } }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#1C1915',
+                font: { family: 'Newsreader', size: 14, style: 'italic' },
+                usePointStyle: true,
+                boxWidth: 8
+              }
+            },
+            tooltip: {
+              backgroundColor: '#1C1915',
+              titleFont: { family: 'Newsreader', italic: true },
+              bodyFont: { family: 'Plus Jakarta Sans' }
+            }
+          }
+        }
+      });
+      updateMonthlyChart();
+    }
+
+    function updateMonthlyChart() {
+      if (!monthlyChartInstance) return;
+
+      const viewDate = state.currentMonthView;
+      const year = viewDate.getFullYear();
+      const month = viewDate.getMonth();
+
+      // Display month header
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      document.getElementById('current-month-display').innerText = `${monthNames[month]} ${year}`;
+
+      // Get days in month
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const labels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
+
+      // Build dataset per subject
+      const datasets = state.subjects.map(sub => {
+        const data = Array(daysInMonth).fill(0);
+
+        state.logs.forEach(log => {
+          const d = new Date(`${log.date}T12:00:00`);
+          if (log.subjectId === sub.id && d.getFullYear() === year && d.getMonth() === month) {
+            const dayNum = d.getDate();
+            data[dayNum - 1] += log.minutes / 60; // Convert to hours
+          }
+        });
+
+        return {
+          label: sub.name,
+          data: data,
+          backgroundColor: sub.color,
+          borderRadius: 4
+        };
+      });
+
+      monthlyChartInstance.data.labels = labels;
+      monthlyChartInstance.data.datasets = datasets;
+      monthlyChartInstance.update();
+    }
+
+    // HELPER: ESCAPE HTML FOR SAFETY
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
